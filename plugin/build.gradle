@@ -1,8 +1,13 @@
 //file:noinspection GroovyAssignabilityCheck
 //file:noinspection GroovyImplicitNullArgumentCall
+//file:noinspection GrUnresolvedAccess
 plugins {
+  // Write Gradle plugins...
   id 'java-gradle-plugin'
+  // ...in Kotlin...
   id 'org.jetbrains.kotlin.jvm'
+  // ...and test them with Groovy
+  id 'groovy'
 }
 
 dependencies {
@@ -10,22 +15,27 @@ dependencies {
   implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk8'
 }
 
+// Configure our test suites (an @Incubating feature)
 testing {
   suites {
+    // Configure the default test suite
     test {
+      // This is the default
       useJUnitJupiter()
       dependencies {
+        // Equivalent to `testImplementation ...` in the top-level dependencies block
         implementation 'com.google.truth:truth:1.1.3'
       }
     }
 
     // Create a new test suite
     functionalTest(JvmTestSuite) {
-      useJUnitJupiter()
+      useSpock()
       dependencies {
         // functionalTest test suite depends on the production code in tests
         implementation project
         implementation 'com.google.truth:truth:1.1.3'
+        implementation 'com.autonomousapps:testkit-truth:1.1'
       }
 
       targets {
@@ -37,30 +47,41 @@ testing {
   }
 }
 
+// Define our plugin
 gradlePlugin {
-  // Define the plugin
   plugins {
     greeting {
-      id = 'mutual.aid.complex-thing'
-      implementationClass = 'mutual.aid.GradleAllTheWayDownPlugin'
+      id = 'mutual.aid.meaning-of-life'
+      implementationClass = 'mutual.aid.MeaningOfLifePlugin'
     }
   }
 }
 
+// TestKit needs to know which source set to use
 gradlePlugin.testSourceSets(sourceSets.functionalTest)
 
+// If you run `check`, it will also run our functional tests
 tasks.named('check') {
   dependsOn testing.suites.functionalTest
 }
 
+// Minimum Java version of 11
 java {
   toolchain {
     languageVersion.set(JavaLanguageVersion.of(11))
   }
 }
 
+// Gradle plugins benefit from this argument
 tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
   kotlinOptions {
     freeCompilerArgs += '-Xsam-conversions=class'
   }
+}
+
+// Groovy code can depend on Kotlin code
+def compileFunctionalTestKotlin = tasks.named('compileFunctionalTestKotlin')
+tasks.named('compileFunctionalTestGroovy', AbstractCompile) {
+  dependsOn compileFunctionalTestKotlin
+  classpath += files(compileFunctionalTestKotlin.get().outputs.files)
 }
