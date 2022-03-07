@@ -40,7 +40,13 @@ testing {
 
       targets {
         all {
-          testTask.configure { shouldRunAfter(test) }
+          testTask.configure {
+            shouldRunAfter(test)
+            maxParallelForks = Runtime.getRuntime().availableProcessors() / 2
+            beforeTest {
+              logger.lifecycle("Running test: $it")
+            }
+          }
         }
       }
     }
