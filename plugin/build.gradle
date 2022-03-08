@@ -61,10 +61,18 @@ gradlePlugin {
       implementationClass = 'mutual.aid.MeaningOfLifePlugin'
     }
   }
+
+  // TestKit needs to know which source set to use. nb: this must come below `testing`, because that
+  // is what creates our functionalTest DSL objects.
+  testSourceSets(sourceSets.functionalTest)
 }
 
-// TestKit needs to know which source set to use
-gradlePlugin.testSourceSets(sourceSets.functionalTest)
+// Groovy code can depend on Kotlin code
+def compileFunctionalTestKotlin = tasks.named('compileFunctionalTestKotlin')
+tasks.named('compileFunctionalTestGroovy', AbstractCompile) {
+  dependsOn compileFunctionalTestKotlin
+  classpath += files(compileFunctionalTestKotlin.get().outputs.files)
+}
 
 // If you run `check`, it will also run our functional tests
 tasks.named('check') {
@@ -83,11 +91,4 @@ tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
   kotlinOptions {
     freeCompilerArgs += '-Xsam-conversions=class'
   }
-}
-
-// Groovy code can depend on Kotlin code
-def compileFunctionalTestKotlin = tasks.named('compileFunctionalTestKotlin')
-tasks.named('compileFunctionalTestGroovy', AbstractCompile) {
-  dependsOn compileFunctionalTestKotlin
-  classpath += files(compileFunctionalTestKotlin.get().outputs.files)
 }

@@ -14,10 +14,9 @@ abstract class AbstractProject : AutoCloseable {
   }
 
   private fun slug(): String {
-    var worker = System.getProperty("org.gradle.test.worker") ?: ""
-    if (worker.isNotBlank()) {
-      worker = "-$worker"
-    }
+    val worker = System.getProperty("org.gradle.test.worker")?.let { w ->
+      "-$w"
+    }.orEmpty()
     return "${javaClass.simpleName}-${UUID.randomUUID().toString().take(16)}$worker"
   }
 

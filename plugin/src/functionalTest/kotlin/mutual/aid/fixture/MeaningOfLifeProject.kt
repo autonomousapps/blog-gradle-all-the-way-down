@@ -9,7 +9,7 @@ class MeaningOfLifeProject : AbstractProject() {
   private val buildFile = projectDir.resolve("build.gradle")
 
   init {
-    // Yes, this is independent of the real project's properties file
+    // Yes, this is independent of our plugin project's properties file
     gradlePropertiesFile.writeText("""
       org.gradle.jvmargs=-Dfile.encoding=UTF-8
     """.trimIndent())

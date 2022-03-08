@@ -5,7 +5,6 @@ import org.gradle.testfixtures.ProjectBuilder
 import org.junit.jupiter.api.Test
 
 class MeaningOfLifePluginTest {
-
   @Test fun `plugin registers task`() {
     // Given
     val project = ProjectBuilder.builder().build()
