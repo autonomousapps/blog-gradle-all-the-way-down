@@ -8,11 +8,31 @@ plugins {
   id 'org.jetbrains.kotlin.jvm'
   // ...and test them with Groovy
   id 'groovy'
+  // For demonstration purposes only.
+  id 'maven-publish'
 }
+
+group = 'mutual.aid'
+version = '1.0'
+
+// -Dimpl
+boolean impl = providers.systemProperty('impl').orNull != null
 
 dependencies {
   implementation platform('org.jetbrains.kotlin:kotlin-bom')
   implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk8'
+
+  if (impl) {
+    implementation 'com.android.tools.build:gradle:7.2.0-beta04'
+  } else {
+    compileOnly 'com.android.tools.build:gradle:7.2.0-beta04'
+  }
+}
+
+// Ensure build/functionalTest doesn't grow without bound when tests sometimes fail to clean up
+// after themselves.
+def deleteOldFuncTests = tasks.register('deleteOldFuncTests', Delete) {
+  delete(layout.buildDirectory.file('functionalTest'))
 }
 
 // Configure our test suites (an @Incubating feature)
@@ -42,6 +62,9 @@ testing {
         all {
           testTask.configure {
             shouldRunAfter(test)
+            dependsOn(deleteOldFuncTests)
+
+            systemProperty('impl', impl)
             maxParallelForks = Runtime.getRuntime().availableProcessors() / 2
             beforeTest {
               logger.lifecycle("Running test: $it")
@@ -56,7 +79,7 @@ testing {
 // Define our plugin
 gradlePlugin {
   plugins {
-    greeting {
+    meaningOfLife {
       id = 'mutual.aid.meaning-of-life'
       implementationClass = 'mutual.aid.MeaningOfLifePlugin'
     }

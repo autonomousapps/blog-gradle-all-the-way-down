@@ -1,0 +1,42 @@
+tasks.register('which', WhichTask)
+
+@UntrackedTask(because = 'Not worth tracking')
+abstract class WhichTask extends DefaultTask {
+
+  WhichTask() {
+    group = 'Help'
+    description = 'Print path to jar providing extension, or list of all available extensions and their types'
+  }
+
+  @Optional
+  @Option(option = 'e', description = 'Which extension?')
+  @Input
+  abstract String ext
+
+  @TaskAction def action() {
+    if (ext) printLocation()
+    else printExtensions()
+  }
+
+  private void printLocation() {
+    def jar = project.extensions.findByName(ext)
+      ?.class
+      ?.protectionDomain
+      ?.codeSource
+      ?.location
+
+    if (jar) {
+      logger.quiet("jar for '$ext': $jar")
+    } else {
+      logger.quiet("No extension named '$ext' registered on project.")
+    }
+  }
+
+  private void printExtensions() {
+    logger.quiet('Available extensions:')
+    project.extensions.extensionsSchema.elements.sort { it.name }.each {
+      // fullyQualifiedName since Gradle 7.4
+      logger.quiet("* ${it.name}, ${it.publicType.fullyQualifiedName}")
+    }
+  }
+}
