@@ -15,7 +15,7 @@ plugins {
 group = 'mutual.aid'
 version = '1.0'
 
-// -Dimpl
+// -Dimpl (for 'implementation')
 boolean impl = providers.systemProperty('impl').orNull != null
 
 dependencies {
@@ -34,6 +34,9 @@ dependencies {
 def deleteOldFuncTests = tasks.register('deleteOldFuncTests', Delete) {
   delete(layout.buildDirectory.file('functionalTest'))
 }
+
+// Some specs rely on the plugin as an external artifact
+def publishToMavenLocal = tasks.named('publishToMavenLocal')
 
 // Configure our test suites (an @Incubating feature)
 testing {
@@ -62,9 +65,11 @@ testing {
         all {
           testTask.configure {
             shouldRunAfter(test)
-            dependsOn(deleteOldFuncTests)
+            dependsOn(deleteOldFuncTests, publishToMavenLocal)
 
+            systemProperty('pluginVersion', version)
             systemProperty('impl', impl)
+
             maxParallelForks = Runtime.getRuntime().availableProcessors() / 2
             beforeTest {
               logger.lifecycle("Running test: $it")

@@ -7,8 +7,14 @@ import kotlin.io.path.writeText
 
 class AndroidProject @JvmOverloads constructor(
   private val agpVersion: String,
-  private val useBuildScript: Boolean = false
+  private val useBuildScript: Boolean = false,
+  private val useMavenLocal: Boolean = false
 ) : AbstractProject() {
+
+  companion object {
+    // See build.gradle
+    private val pluginVersion = System.getProperty("pluginVersion").toString()
+  }
 
   private val gradlePropertiesFile = projectDir.resolve("gradle.properties")
   private val settingsFile = projectDir.resolve("settings.gradle")
@@ -27,6 +33,7 @@ class AndroidProject @JvmOverloads constructor(
       """
       pluginManagement {
         repositories {
+          if ($useMavenLocal) mavenLocal()
           gradlePluginPortal()
           google()
           mavenCentral()
@@ -36,6 +43,7 @@ class AndroidProject @JvmOverloads constructor(
           // this simply lets you have a single place to declare all plugin versions.
           id 'com.gradle.enterprise' version '3.8.1'
           id 'com.android.library' version '$agpVersion'
+          id 'mutual.aid.meaning-of-life' version '$pluginVersion'
         }
       }
       
@@ -72,12 +80,13 @@ class AndroidProject @JvmOverloads constructor(
         """
         buildscript {
           repositories {
+            if ($useMavenLocal) mavenLocal()
             google()
             mavenCentral()
           }
           dependencies {
             // This legacy mechanism requires a version 
-            classpath 'com.android.tools.build:gradle:4.2.2'
+            classpath 'com.android.tools.build:gradle:$agpVersion'
           }
         }
         """.trimIndent()

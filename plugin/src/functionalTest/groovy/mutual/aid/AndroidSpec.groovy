@@ -39,25 +39,35 @@ class AndroidSpec extends Specification {
   }
 
   @Requires({ PreconditionContext it -> it.sys.impl == 'true' })
-  def "gets the expected version of AGP on the classpath for implementation (#gradleVersion AGP #agpVersion useBuildScript=#useBuildScript)"() {
+  def "gets the expected version of AGP on the classpath for implementation (#gradleVersion AGP #agpVersion useBuildScript=#useBuildScript useMavenLocal=#useMavenLocal)"() {
     given: 'An Android Gradle project that uses `buildscript {}` for declaring AGP'
-    project = new AndroidProject(agpVersion, useBuildScript)
+    project = new AndroidProject(agpVersion, useBuildScript, useMavenLocal)
 
     when: 'We check the version of AGP on the classpath'
-    def result = Builder.build(gradleVersion, project, 'lib:which', '-e', 'android')
+    def result = Builder.build(
+      gradleVersion,
+      project,
+      !useMavenLocal,
+      'lib:which', '-e', 'android'
+    )
 
     then: 'Result depends'
     def androidJar = result.output.split('\n').find {
       it.startsWith("jar for 'android'")
     }
-    def expected = useBuildScript
-      // the buildscript has more "force"
-      ? 'gradle-4.2.2.jar'
-      // our 'implementation' dependency has more "force"
+    def expected = (useBuildScript || useMavenLocal)
+      // the project's requirements have greater priority
+      ? "gradle-${agpVersion}.jar"
+      // our 'implementation' dependency has greater priority
       : 'gradle-7.2.0-beta04.jar'
     assertThat(androidJar).endsWith(expected)
 
     where:
-    [gradleVersion, agpVersion, useBuildScript] << gradleAgpCombinations([true, false])
+    [gradleVersion, agpVersion, useBuildScript, useMavenLocal] << gradleAgpCombinations(
+      // useBuildScript
+      [true, false],
+      // useMavenLocal
+      [true, false],
+    )
   }
 }

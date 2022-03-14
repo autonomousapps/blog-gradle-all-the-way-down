@@ -21,6 +21,6 @@ abstract class AbstractProject : AutoCloseable {
   }
 
   override fun close() {
-    projectDir.parent.toFile().deleteRecursively()
+    projectDir.toFile().deleteRecursively()
   }
 }
