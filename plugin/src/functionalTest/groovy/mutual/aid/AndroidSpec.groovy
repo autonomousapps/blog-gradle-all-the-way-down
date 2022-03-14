@@ -19,9 +19,14 @@ class AndroidSpec extends Specification {
   AbstractProject project
 
   @IgnoreIf({ PreconditionContext it -> it.sys.impl == 'true' })
-  def "gets the expected version of AGP on the classpath for compileOnly (#gradleVersion AGP #agpVersion)"() {
-    given: 'An Android Gradle project that uses `plugins {}` for declaring AGP'
-    project = new AndroidProject(agpVersion)
+  def "gets the expected version of AGP on the classpath for compileOnly (#gradleVersion AGP #agpVersion useBuildScriptForAgp=#useBuildScriptForAgp useBuildScriptForPlugin=#useBuildScriptForPlugin useMavenLocal=#useMavenLocal)"() {
+    given: 'An Android Gradle project'
+    project = new AndroidProject(
+      agpVersion,
+      useBuildScriptForAgp,
+      useBuildScriptForPlugin,
+      useMavenLocal
+    )
 
     when: 'We check the version of AGP on the classpath'
     def result = Builder.build(gradleVersion, project, 'lib:which', '-e', 'android')
@@ -29,19 +34,30 @@ class AndroidSpec extends Specification {
     // The output will contain a line like this:
     // jar for 'android': file:/path/to/gradle-all-the-way-down/plugin/build/tmp/functionalTest/work/.gradle-test-kit/caches/jars-9/f19c6db5e8f27caa4113e88608762369/gradle-4.2.2.jar
     then: 'It matches what the project provides, not the plugin'
-    def androidJar = result.output.split('\n').find {
-      it.startsWith("jar for 'android'")
-    }
+    def androidJar = result.output.split('\n').find { it.startsWith("jar for 'android'") }
+    // Note that the assertion is always the same
     assertThat(androidJar).endsWith("gradle-${agpVersion}.jar")
 
     where:
-    [gradleVersion, agpVersion] << gradleAgpCombinations()
+    [gradleVersion, agpVersion, useBuildScriptForAgp, useBuildScriptForPlugin, useMavenLocal] << gradleAgpCombinations(
+      // useBuildScriptForAgp
+      [true, false],
+      // useBuildScriptForPlugin
+      [true, false],
+      // useMavenLocal
+      [true, false],
+    )
   }
 
   @Requires({ PreconditionContext it -> it.sys.impl == 'true' })
-  def "gets the expected version of AGP on the classpath for implementation (#gradleVersion AGP #agpVersion useBuildScript=#useBuildScript useMavenLocal=#useMavenLocal)"() {
-    given: 'An Android Gradle project that uses `buildscript {}` for declaring AGP'
-    project = new AndroidProject(agpVersion, useBuildScript, useMavenLocal)
+  def "gets the expected version of AGP on the classpath for implementation (#gradleVersion AGP #agpVersion useBuildScriptForAgp=#useBuildScriptForAgp useBuildScriptForPlugin=#useBuildScriptForPlugin useMavenLocal=#useMavenLocal)"() {
+    given: 'An Android Gradle project'
+    project = new AndroidProject(
+      agpVersion,
+      useBuildScriptForAgp,
+      useBuildScriptForPlugin,
+      useMavenLocal
+    )
 
     when: 'We check the version of AGP on the classpath'
     def result = Builder.build(
@@ -52,19 +68,27 @@ class AndroidSpec extends Specification {
     )
 
     then: 'Result depends'
-    def androidJar = result.output.split('\n').find {
-      it.startsWith("jar for 'android'")
-    }
-    def expected = (useBuildScript || useMavenLocal)
-      // the project's requirements have greater priority
-      ? "gradle-${agpVersion}.jar"
+    def androidJar = result.output.split('\n').find { it.startsWith("jar for 'android'") }
+    def expected
+    if (useBuildScriptForAgp && useBuildScriptForPlugin && useMavenLocal) {
       // our 'implementation' dependency has greater priority
-      : 'gradle-7.2.0-beta04.jar'
+      expected = 'gradle-7.2.0-beta04.jar'
+    } else if (useBuildScriptForAgp || useMavenLocal) {
+      // the project's requirements have greater priority
+      expected = "gradle-${agpVersion}.jar"
+    } else {
+      // our 'implementation' dependency has greater priority
+      expected = 'gradle-7.2.0-beta04.jar'
+    }
+
+    // Note that the assertion is... complicated.
     assertThat(androidJar).endsWith(expected)
 
-    where:
-    [gradleVersion, agpVersion, useBuildScript, useMavenLocal] << gradleAgpCombinations(
-      // useBuildScript
+    where: 'There is a truly atrocious combinatorial explosion'
+    [gradleVersion, agpVersion, useBuildScriptForAgp, useBuildScriptForPlugin, useMavenLocal] << gradleAgpCombinations(
+      // useBuildScriptForAgp
+      [true, false],
+      // useBuildScriptForPlugin
       [true, false],
       // useMavenLocal
       [true, false],

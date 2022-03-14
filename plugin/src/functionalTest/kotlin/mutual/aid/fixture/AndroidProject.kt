@@ -7,7 +7,8 @@ import kotlin.io.path.writeText
 
 class AndroidProject @JvmOverloads constructor(
   private val agpVersion: String,
-  private val useBuildScript: Boolean = false,
+  private val useBuildScriptForAgp: Boolean = false,
+  private val useBuildScriptForPlugin: Boolean = false,
   private val useMavenLocal: Boolean = false
 ) : AbstractProject() {
 
@@ -18,7 +19,7 @@ class AndroidProject @JvmOverloads constructor(
 
   private val gradlePropertiesFile = projectDir.resolve("gradle.properties")
   private val settingsFile = projectDir.resolve("settings.gradle")
-  private val buildFile = projectDir.resolve("build.gradle")
+  private val rootBuildFile = projectDir.resolve("build.gradle")
 
   init {
     // Yes, this is independent of our plugin project's properties file
@@ -75,8 +76,8 @@ class AndroidProject @JvmOverloads constructor(
   }
 
   private fun rootBuild() {
-    if (useBuildScript) {
-      buildFile.writeText(
+    if (useBuildScriptForAgp) {
+      rootBuildFile.writeText(
         """
         buildscript {
           repositories {
@@ -87,12 +88,13 @@ class AndroidProject @JvmOverloads constructor(
           dependencies {
             // This legacy mechanism requires a version 
             classpath 'com.android.tools.build:gradle:$agpVersion'
+            if ($useMavenLocal && $useBuildScriptForPlugin) classpath 'mutual.aid.meaning-of-life:mutual.aid.meaning-of-life.gradle.plugin:$pluginVersion' 
           }
         }
         """.trimIndent()
       )
     } else {
-      buildFile.writeText(
+      rootBuildFile.writeText(
         """
         plugins {
           // No version! We centralize version information in settings.gradle 
